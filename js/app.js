@@ -1,6 +1,6 @@
-import { newSeed, pickNextQuestion, buildResult, tallyTags, TAG_ORDER } from './core.js?v=1';
-import { quiltSVG } from './quilt.js?v=1';
-import { renderShareImage, fmtDate } from './share.js?v=1';
+import { newSeed, pickNextQuestion, buildResult, tallyTags, TAG_ORDER } from './core.js?v=2';
+import { quiltSVG } from './quilt.js?v=2';
+import { renderShareImage, fmtDate } from './share.js?v=2';
 
 const $ = (s, el = document) => el.querySelector(s);
 const view = $('#view');
@@ -331,8 +331,8 @@ function route() {
 async function boot() {
   try {
     const [q, m] = await Promise.all([
-      fetch('data/questions.json?v=1').then((r) => r.json()),
-      fetch('data/messages.json?v=1').then((r) => r.json()),
+      fetch('data/questions.json?v=2').then((r) => r.json()),
+      fetch('data/messages.json?v=2').then((r) => r.json()),
     ]);
     bank = q;
     msgs = m;

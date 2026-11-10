@@ -1,5 +1,5 @@
 // 완성한 조각보 + 결과 문장을 한 장의 이미지로
-import { quiltSVG } from './quilt.js?v=1';
+import { quiltSVG } from './quilt.js?v=2';
 
 const FONT = '"Gowun Batang", "Nanum Myeongjo", "AppleMyungjo", serif';
 
