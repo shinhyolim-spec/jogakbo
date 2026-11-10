@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>일상의 조각보</title>
+  <meta name="description" content="질문 하나에 조각 하나. 조각이 모두 모이면 전통 조각보가 완성되며 '나는 어떤 사람인지'가 드러나는 자아찾기 웹앱.">
+  <meta name="theme-color" content="#f3ecdd">
+  <meta name="color-scheme" content="light">
+  <meta property="og:title" content="일상의 조각보">
+  <meta property="og:description" content="하루 한 조각, 나를 엮어 가는 시간">
+  <meta property="og:type" content="website">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="조각보">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css?v=1">
+</head>
+<body>
+  <div class="app">
+    <main id="view" tabindex="-1"></main>
+    <nav class="tabs" id="tabs" aria-label="메뉴">
+      <a href="#home" data-tab="home"><span class="tab-ico" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M4 4h7v9H4zM11 4h9v5h-9zM11 9h9v11h-9zM4 13h7v7H4z"/></svg></span>조각보</a>
+      <a href="#wardrobe" data-tab="wardrobe"><span class="tab-ico" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M5 3h14v18H5zM12 3v18M9.5 11v2M14.5 11v2M5 18h14"/></svg></span>옷장</a>
+      <a href="#gallery" data-tab="gallery"><span class="tab-ico" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M3 5h18M12 2v3M6 5l-1 15h14L18 5"/><path d="M8 10h8v6H8z"/></svg></span>전시장</a>
+    </nav>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <dialog id="sheet" class="sheet"></dialog>
+  <noscript><p class="noscript">이 앱은 자바스크립트가 필요해요.</p></noscript>
+  <script type="module" src="js/app.js?v=1"></script>
+</body>
+</html>
