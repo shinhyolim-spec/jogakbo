@@ -1,6 +1,6 @@
-import { newSeed, pickNextQuestion, buildResult, tallyTags, TAG_ORDER } from './core.js?v=1';
-import { quiltSVG } from './quilt.js?v=1';
-import { renderShareImage, fmtDate } from './share.js?v=1';
+import { newSeed, pickNextQuestion, buildResult, tallyTags, TAG_ORDER } from './core.js?v=2';
+import { quiltSVG } from './quilt.js?v=2';
+import { renderShareImage, fmtDate } from './share.js?v=2';
 
 const $ = (s, el = document) => el.querySelector(s);
 const view = $('#view');
@@ -65,8 +65,10 @@ function viewHome() {
     <p class="hint">${k === 0
     ? '질문 하나에 답하면 조각 하나가 생겨요.<br>기한은 없어요. 하루 한두 조각도, 한 번에 다 채워도 좋아요.'
     : `남은 조각 ${left}개. 언제 들어와도 이어서 채울 수 있어요.`}</p>
+    <button class="share-app" id="shareApp">${SHARE_ICO}친구에게 조각보 알려주기</button>
   `;
   $('#go').onclick = () => { location.hash = '#q'; };
+  $('#shareApp').onclick = shareApp;
 }
 
 // ---------- 화면: 질문 ----------
@@ -152,10 +154,12 @@ function viewQuilt(id, isNew) {
       <button class="btn primary" id="share">이미지로 저장 · 보내기</button>
       <button class="btn" id="hang">${hung ? '전시장에서 내리기' : '전시장 벽에 걸기'}</button>
       ${others.length ? '<button class="btn" id="cmp">예전 조각보와 나란히 보기</button>' : ''}
+      <button class="btn" id="shareApp">친구에게 조각보 알려주기</button>
       ${isNew ? '<a class="btn ghost" href="#home">새 조각보 시작하기</a>' : '<button class="btn ghost danger" id="del">옷장에서 꺼내 정리하기</button>'}
     </div>
   `;
   $('#share').onclick = () => share(r);
+  $('#shareApp').onclick = shareApp;
   $('#hang').onclick = () => {
     db.hung = hung ? db.hung.filter((x) => x !== r.id) : [r.id, ...db.hung];
     save();
@@ -175,7 +179,33 @@ function viewQuilt(id, isNew) {
   }
 }
 
-// ---------- 공유 ----------
+// ---------- 앱 링크 공유 (친구에게 알려주기) ----------
+const SHARE_ICO = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5M5 12v8h14v-8"/></svg>';
+const APP_TEXT = '질문 하나에 답하면 조각 하나. 조각이 다 모이면 나를 닮은 조각보가 완성돼요. 회원가입 없이 바로 해 볼 수 있어요.';
+const appUrl = () => location.origin + location.pathname;
+
+async function shareApp() {
+  const url = appUrl();
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: '일상의 조각보', text: APP_TEXT, url });
+      return;
+    } catch (e) { if (e?.name === 'AbortError') return; }
+  }
+  try {
+    await navigator.clipboard.writeText(`${APP_TEXT}\n${url}`);
+    toast('링크를 복사했어요. 카톡이나 문자에 붙여 넣어 보내 주세요');
+    return;
+  } catch { /* 클립보드 사용 불가 → 직접 복사 */ }
+  openSheet(`
+    <h2>친구에게 조각보 알려주기</h2>
+    <p class="hint small">아래 링크를 길게 눌러 복사해서 보내 주세요.</p>
+    <input class="link-box" readonly value="${esc(url)}" onfocus="this.select()">
+    <button class="btn ghost" data-close>닫기</button>
+  `);
+}
+
+// ---------- 결과 이미지 공유 ----------
 async function share(r) {
   toast('이미지를 만들고 있어요…');
   let blob;
@@ -331,8 +361,8 @@ function route() {
 async function boot() {
   try {
     const [q, m] = await Promise.all([
-      fetch('data/questions.json?v=1').then((r) => r.json()),
-      fetch('data/messages.json?v=1').then((r) => r.json()),
+      fetch('data/questions.json?v=2').then((r) => r.json()),
+      fetch('data/messages.json?v=2').then((r) => r.json()),
     ]);
     bank = q;
     msgs = m;

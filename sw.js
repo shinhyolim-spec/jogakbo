@@ -1,10 +1,10 @@
 // 오프라인 캐시. 배포할 때 VERSION과 ?v= 값을 함께 올리면 새 파일로 교체됨
-const VERSION = 'jogakbo-v1';
+const VERSION = 'jogakbo-v2';
 const SHELL = [
   './', './index.html', './manifest.webmanifest',
-  './css/style.css?v=1',
-  './js/app.js?v=1', './js/core.js?v=1', './js/quilt.js?v=1', './js/share.js?v=1',
-  './data/questions.json?v=1', './data/messages.json?v=1',
+  './css/style.css?v=2',
+  './js/app.js?v=2', './js/core.js?v=2', './js/quilt.js?v=2', './js/share.js?v=2',
+  './data/questions.json?v=2', './data/messages.json?v=2',
   './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png',
 ];
 
