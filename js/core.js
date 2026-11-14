@@ -109,7 +109,34 @@ export function josa(word, pair) {
   return word + (has ? withB : without);
 }
 
-export function buildResult(bank, msgs, answers, seed) {
+// 답 조합 지문: 어떤 질문에 몇 번째 답을 골랐는지 (답한 순서와 무관)
+export function answerHash(answers) {
+  const sig = answers.map((a) => `${a.qid}:${a.optionIndex}`).sort().join('|');
+  let h = 0x811c9dc5;
+  for (let i = 0; i < sig.length; i++) {
+    h ^= sig.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return h >>> 0;
+}
+
+// 나를 표현하는 한 단어: 한 문장과 같은 성향 순위로 후보 묶음을 고르고,
+// 그 안에서는 고른 답 조합으로 하나를 정한다.
+// 1위가 유난히 두드러지면(2위 비율이 1위의 55% 미만) 그 성향 하나의 단어 묶음을 쓴다.
+export const SOLO_RATIO = 0.55;
+export function pickOneWord(words, bank, answers) {
+  if (!words || !bank || !answers?.length) return null;
+  const picked = tallyTags(bank, answers).filter((t) => t.count > 0);
+  if (!picked.length) return null;
+  const [p, s] = picked;
+  const solo = !s || s.rate < p.rate * SOLO_RATIO;
+  const pool = (!solo && words.pairs[`${p.tag}>${s.tag}`]) || words.solo[p.tag] || [];
+  if (!pool.length) return null;
+  const w = pool[answerHash(answers) % pool.length];
+  return { word: w.word, line: w.line };
+}
+
+export function buildResult(bank, msgs, answers, seed, words) {
   const tally = tallyTags(bank, answers);
   const tags = topTags(tally);
   const [p, s = p, t] = tags;
@@ -130,5 +157,6 @@ export function buildResult(bank, msgs, answers, seed) {
     values,
     need,
     word,
+    oneWord: pickOneWord(words, bank, answers),
   };
 }

@@ -1,5 +1,5 @@
 // 조각보 SVG 그리기 (화면·이미지 저장 공용)
-import { layoutQuilt, rng } from './core.js?v=2';
+import { layoutQuilt, rng } from './core.js?v=3';
 
 const DARK = new Set(['안정', '자유']);
 const BASE = '#cdb894'; // 빈 칸이 비치는 바탕 (연한 흙색 무명)
