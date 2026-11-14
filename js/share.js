@@ -112,7 +112,11 @@ export async function renderShareImage(rec, bank, msgs) {
   ctx.font = `28px ${FONT}`;
   ctx.fillStyle = '#6d5a47';
   const tags = R.tags.map((t) => `${t}`).join(' · ');
-  ctx.fillText(`요즘 아끼는 것 — ${msgs.tags[R.tags[0]].value}`, W / 2, y);
+  // 예전에 저장된 조각보는 고른 문구가 따로 없어서 그 성향의 첫 문구를 쓴다
+  const T0 = msgs.tags[R.tags[0]] || {};
+  const valueNoun = R.valueNoun || (Array.isArray(T0.values) ? T0.values[0] : T0.value) || '';
+  for (const l of wrap(ctx, `요즘 아끼는 것 — ${valueNoun}`, 900)) { ctx.fillText(l, W / 2, y); y += 40; }
+  y -= 40;
   y += 46;
   ctx.fillText(`나의 결 — ${tags}`, W / 2, y);
   y += 70;

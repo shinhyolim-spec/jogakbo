@@ -136,25 +136,43 @@ export function pickOneWord(words, bank, answers) {
   return { word: w.word, line: w.line };
 }
 
+// 고른 답 조합으로 후보 중 하나 고르기. 항목마다 salt를 달리해 서로 따로 정해지게 한다.
+export function chooseByAnswers(list, answers, salt) {
+  if (!list || !list.length) return '';
+  let h = answerHash(answers);
+  for (let i = 0; i < salt.length; i++) h = Math.imul(h ^ salt.charCodeAt(i), 0x01000193) >>> 0;
+  return list[Math.floor(rng(h)() * list.length)];
+}
+
+// 예전 형식(문구 하나)과 새 형식(후보 배열)을 모두 받는다
+const asList = (v) => (Array.isArray(v) ? v : v ? [v] : []);
+
 export function buildResult(bank, msgs, answers, seed, words) {
   const tally = tallyTags(bank, answers);
   const tags = topTags(tally);
   const [p, s = p, t] = tags;
   const P = msgs.tags[p];
   const S = msgs.tags[s];
-  const r = rng(seed ^ 0x5bd1e995);
-  const sentence = p === s ? P.core : `${S.modifier} ${P.core}`;
+  const pick = (obj, key, oldKey, salt) => chooseByAnswers(asList(obj[key] ?? obj[oldKey]), answers, salt);
+  // 한 문장: 앞부분(둘째 성향)과 뒷부분(첫째 성향)을 따로 고른다
+  const front = p === s ? '' : pick(S, 'modifiers', 'modifier', 'front');
+  const back = pick(P, 'cores', 'core', 'back');
+  const sentence = front ? `${front} ${back}` : back;
+  const valueNoun = pick(P, 'values', 'value', 'value1');
+  const valueLine = pick(P, 'valueLines', 'valueLine', 'valueLine');
   const values = p === s
-    ? `요즘 당신은 ${josa(P.value, '을/를')} 아끼는 사람이네요. ${P.valueLine}`
-    : `요즘 당신은 ${josa(P.value, '을/를')} 아끼는 사람이네요. ${S.value}도 마음 한켠에 소중히 두고 있어요. ${P.valueLine}`;
+    ? `요즘 당신은 ${josa(valueNoun, '을/를')} 아끼는 사람이네요. ${valueLine}`
+    : `요즘 당신은 ${josa(valueNoun, '을/를')} 아끼는 사람이네요. ${pick(S, 'values', 'value', 'value2')}도 마음 한켠에 소중히 두고 있어요. ${valueLine}`;
   let need = `지금 당신에게는 ${josa(P.need, '이/가')} 필요해 보여요. ${P.needLine}`;
   if (t) need += ` ${msgs.third.replace('{tag}', t)}`;
-  const word = P.words[Math.floor(r() * P.words.length)];
+  const word = pick(P, 'words', 'words', 'word');
   return {
     tags,
     tally: tally.map(({ tag, count, offered }) => ({ tag, count, offered })),
     sentence,
+    sentenceParts: { front, back },
     values,
+    valueNoun,
     need,
     word,
     oneWord: pickOneWord(words, bank, answers),

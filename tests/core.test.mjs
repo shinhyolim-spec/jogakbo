@@ -79,6 +79,27 @@ assert.ok(pool.some((w) => w.word === pickOneWord(words, bank, answers).word));
 // 성취가 나올 때마다 성취만 고르면 → 성취가 유난히 두드러짐 → 성취 단독 단어
 assert.ok(words.solo['성취'].some((w) => w.word === pickOneWord(words, bank, ach).word));
 
+// 결과 문구: 답이 같으면 늘 같고(시드 무관), 앞·뒷부분은 각 성향의 후보에서 나옴
+const r1 = buildResult(bank, msgs, answers, 1, words);
+assert.deepEqual(r1, buildResult(bank, msgs, answers, 999, words));
+assert.deepEqual(r1, buildResult(bank, msgs, shuffled, 3, words));
+assert.ok(msgs.tags[r1.tags[1]].modifiers.includes(r1.sentenceParts.front));
+assert.ok(msgs.tags[r1.tags[0]].cores.includes(r1.sentenceParts.back));
+assert.equal(r1.sentence, `${r1.sentenceParts.front} ${r1.sentenceParts.back}`);
+assert.ok(msgs.tags[r1.tags[0]].values.includes(r1.valueNoun));
+// 예전 형식(문구 하나씩)의 messages로도 깨지지 않음
+const oldMsgs = { ...msgs, tags: Object.fromEntries(TAG_ORDER.map((t) => [t, { ...msgs.tags[t], modifiers: undefined, cores: undefined, values: undefined, valueLines: undefined, modifier: msgs.tags[t].modifiers[0], core: msgs.tags[t].cores[0], value: msgs.tags[t].values[0], valueLine: msgs.tags[t].valueLines[0] }])) };
+assert.ok(!/undefined/.test(JSON.stringify(buildResult(bank, oldMsgs, answers, 1, words))));
+// 같은 1·2위라도 답이 다르면 앞·뒷부분이 따로 달라짐
+const fronts = new Set(); const backs = new Set();
+for (let k = 0; k < 200; k++) {
+  const r = rng(500 + k);
+  const a2 = bank.questions.map((q) => { const i = Math.floor(r() * 4); return { qid: q.id, optionIndex: i, tag: q.options[i].tag }; });
+  const v = buildResult(bank, msgs, a2, 0, words);
+  fronts.add(v.sentenceParts.front); backs.add(v.sentenceParts.back);
+}
+assert.ok(fronts.size >= 25 && backs.size >= 25, `앞 ${fronts.size} 뒤 ${backs.size}`);
+
 const ex = buildResult(bank, msgs, answers, 5, words);
 console.log(ex.tags, ex.oneWord, '\n', ex.sentence, '\n', ex.values, '\n', ex.need, '\n', ex.word);
 console.log('core tests passed');
