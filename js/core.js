@@ -109,26 +109,72 @@ export function josa(word, pair) {
   return word + (has ? withB : without);
 }
 
-export function buildResult(bank, msgs, answers, seed) {
+// 답 조합 지문: 어떤 질문에 몇 번째 답을 골랐는지 (답한 순서와 무관)
+export function answerHash(answers) {
+  const sig = answers.map((a) => `${a.qid}:${a.optionIndex}`).sort().join('|');
+  let h = 0x811c9dc5;
+  for (let i = 0; i < sig.length; i++) {
+    h ^= sig.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return h >>> 0;
+}
+
+// 나를 표현하는 한 단어: 한 문장과 같은 성향 순위로 후보 묶음을 고르고,
+// 그 안에서는 고른 답 조합으로 하나를 정한다.
+// 1위가 유난히 두드러지면(2위 비율이 1위의 55% 미만) 그 성향 하나의 단어 묶음을 쓴다.
+export const SOLO_RATIO = 0.55;
+export function pickOneWord(words, bank, answers) {
+  if (!words || !bank || !answers?.length) return null;
+  const picked = tallyTags(bank, answers).filter((t) => t.count > 0);
+  if (!picked.length) return null;
+  const [p, s] = picked;
+  const solo = !s || s.rate < p.rate * SOLO_RATIO;
+  const pool = (!solo && words.pairs[`${p.tag}>${s.tag}`]) || words.solo[p.tag] || [];
+  if (!pool.length) return null;
+  const w = pool[answerHash(answers) % pool.length];
+  return { word: w.word, line: w.line };
+}
+
+// 고른 답 조합으로 후보 중 하나 고르기. 항목마다 salt를 달리해 서로 따로 정해지게 한다.
+export function chooseByAnswers(list, answers, salt) {
+  if (!list || !list.length) return '';
+  let h = answerHash(answers);
+  for (let i = 0; i < salt.length; i++) h = Math.imul(h ^ salt.charCodeAt(i), 0x01000193) >>> 0;
+  return list[Math.floor(rng(h)() * list.length)];
+}
+
+// 예전 형식(문구 하나)과 새 형식(후보 배열)을 모두 받는다
+const asList = (v) => (Array.isArray(v) ? v : v ? [v] : []);
+
+export function buildResult(bank, msgs, answers, seed, words) {
   const tally = tallyTags(bank, answers);
   const tags = topTags(tally);
   const [p, s = p, t] = tags;
   const P = msgs.tags[p];
   const S = msgs.tags[s];
-  const r = rng(seed ^ 0x5bd1e995);
-  const sentence = p === s ? P.core : `${S.modifier} ${P.core}`;
+  const pick = (obj, key, oldKey, salt) => chooseByAnswers(asList(obj[key] ?? obj[oldKey]), answers, salt);
+  // 한 문장: 앞부분(둘째 성향)과 뒷부분(첫째 성향)을 따로 고른다
+  const front = p === s ? '' : pick(S, 'modifiers', 'modifier', 'front');
+  const back = pick(P, 'cores', 'core', 'back');
+  const sentence = front ? `${front} ${back}` : back;
+  const valueNoun = pick(P, 'values', 'value', 'value1');
+  const valueLine = pick(P, 'valueLines', 'valueLine', 'valueLine');
   const values = p === s
-    ? `요즘 당신은 ${josa(P.value, '을/를')} 아끼는 사람이네요. ${P.valueLine}`
-    : `요즘 당신은 ${josa(P.value, '을/를')} 아끼는 사람이네요. ${S.value}도 마음 한켠에 소중히 두고 있어요. ${P.valueLine}`;
+    ? `요즘 당신은 ${josa(valueNoun, '을/를')} 아끼는 사람이네요. ${valueLine}`
+    : `요즘 당신은 ${josa(valueNoun, '을/를')} 아끼는 사람이네요. ${pick(S, 'values', 'value', 'value2')}도 마음 한켠에 소중히 두고 있어요. ${valueLine}`;
   let need = `지금 당신에게는 ${josa(P.need, '이/가')} 필요해 보여요. ${P.needLine}`;
   if (t) need += ` ${msgs.third.replace('{tag}', t)}`;
-  const word = P.words[Math.floor(r() * P.words.length)];
+  const word = pick(P, 'words', 'words', 'word');
   return {
     tags,
     tally: tally.map(({ tag, count, offered }) => ({ tag, count, offered })),
     sentence,
+    sentenceParts: { front, back },
     values,
+    valueNoun,
     need,
     word,
+    oneWord: pickOneWord(words, bank, answers),
   };
 }

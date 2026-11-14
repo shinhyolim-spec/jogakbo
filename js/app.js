@@ -1,12 +1,13 @@
-import { newSeed, pickNextQuestion, buildResult, tallyTags, TAG_ORDER } from './core.js?v=2';
-import { quiltSVG } from './quilt.js?v=2';
-import { renderShareImage, fmtDate } from './share.js?v=2';
+import { newSeed, pickNextQuestion, buildResult, tallyTags, TAG_ORDER, pickOneWord } from './core.js?v=3';
+import { quiltSVG } from './quilt.js?v=3';
+import { renderShareImage, fmtDate } from './share.js?v=3';
 
 const $ = (s, el = document) => el.querySelector(s);
 const view = $('#view');
 const KEY = 'jogakbo.v1';
 let bank;
 let msgs;
+let words;
 let db;
 let flash = null; // 방금 붙인 조각 (홈 화면 애니메이션용)
 
@@ -26,6 +27,8 @@ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 const qById = (id) => bank.questions.find((q) => q.id === id);
 const rec = (id) => db.wardrobe.find((r) => r.id === id);
+// 한 단어가 생기기 전에 저장된 조각보는 저장된 답으로 계산해서 보여 준다 (저장 기록은 고치지 않음)
+const oneWordOf = (r) => r.result.oneWord || pickOneWord(words, bank, r.answers);
 
 function toast(msg) {
   const el = $('#toast');
@@ -114,7 +117,7 @@ function answer(q, i) {
     const r = {
       ...cur,
       completedAt: Date.now(),
-      result: buildResult(bank, msgs, cur.answers, cur.seed),
+      result: buildResult(bank, msgs, cur.answers, cur.seed, words),
     };
     db.wardrobe.unshift(r);
     db.current = null;
@@ -132,6 +135,7 @@ function viewQuilt(id, isNew) {
   const r = rec(id);
   if (!r) { location.hash = '#wardrobe'; return; }
   const R = r.result;
+  const ow = oneWordOf(r);
   const hung = db.hung.includes(r.id);
   const others = db.wardrobe.filter((x) => x.id !== r.id);
   const memos = r.answers.filter((a) => a.memo);
@@ -142,6 +146,11 @@ function viewQuilt(id, isNew) {
     </header>
     <figure class="frame complete ${isNew ? 'just-done' : ''}">${quiltSVG(r, bank, { complete: true })}</figure>
     <article class="story ${isNew ? 'reveal' : ''}">
+      ${ow ? `<div class="one-word">
+        <p class="story-lead">나를 표현하는 한 단어</p>
+        <p class="one-word-word">${esc(ow.word)}</p>
+        <p class="one-word-line">${esc(ow.line)}</p>
+      </div>` : ''}
       <p class="story-lead">나를 표현하는 한 문장</p>
       <p class="story-sentence">${esc(R.sentence)}</p>
       <div class="story-tags">${R.tags.map((t) => `<span class="chip" style="--c:${bank.tags[t].color}">${esc(t)}</span>`).join('')}</div>
@@ -209,7 +218,7 @@ async function shareApp() {
 async function share(r) {
   toast('이미지를 만들고 있어요…');
   let blob;
-  try { blob = await renderShareImage(r, bank, msgs); } catch { toast('이미지를 만들지 못했어요'); return; }
+  try { blob = await renderShareImage({ ...r, result: { ...r.result, oneWord: oneWordOf(r) } }, bank, msgs); } catch { toast('이미지를 만들지 못했어요'); return; }
   const file = new File([blob], `조각보-${fmtDate(r.completedAt).replace(/[. ]+/g, '')}.png`, { type: 'image/png' });
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
     try {
@@ -360,12 +369,14 @@ function route() {
 
 async function boot() {
   try {
-    const [q, m] = await Promise.all([
-      fetch('data/questions.json?v=2').then((r) => r.json()),
-      fetch('data/messages.json?v=2').then((r) => r.json()),
+    const [q, m, w] = await Promise.all([
+      fetch('data/questions.json?v=3').then((r) => r.json()),
+      fetch('data/messages.json?v=3').then((r) => r.json()),
+      fetch('data/words.json?v=3').then((r) => r.json()),
     ]);
     bank = q;
     msgs = m;
+    words = w;
   } catch {
     view.innerHTML = '<p class="hint">질문을 불러오지 못했어요. 인터넷 연결을 확인하고 다시 열어 주세요.</p>';
     return;
